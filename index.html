@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CWMS/CVRS 系統優化項目可視化報表</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Microsoft JhengHei", "PingFang TC", "Heiti TC", sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to right, #2E5090 0%, #1a3456 100%);
+            color: white;
+            padding: 0 20px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        nav h1 {
+            font-size: 18px;
+            font-weight: 600;
+            flex-grow: 1;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 0;
+        }
+
+        nav ul li {
+            margin: 0;
+        }
+
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 15px;
+            display: block;
+            font-size: 13px;
+            transition: background-color 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+
+        nav ul li a:hover {
+            background-color: rgba(255,255,255,0.1);
+            border-bottom-color: #E97132;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1400px;
+            margin: 70px auto 40px;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            border-left: 5px solid #2E5090;
+        }
+
+        .header h2 {
+            color: #2E5090;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* Sections */
+        section {
+            margin-bottom: 40px;
+            scroll-margin-top: 80px;
+        }
+
+        .section-title {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid #2E5090;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .section-title h2 {
+            color: #2E5090;
+            font-size: 22px;
+            margin: 0;
+        }
+
+        /* Summary Cards */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 5px solid;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .card.primary {
+            border-left-color: #2E5090;
+        }
+
+        .card.success {
+            border-left-color: #70AD47;
+        }
+
+        .card.warning {
+            border-left-color: #E97132;
+        }
+
+        .card.info {
+            border-left-color: #1E90FF;
+        }
+
+        .card-label {
+            color: #999;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .card-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #2E5090;
+        }
+
+        .card.success .card-value {
+            color: #70AD47;
+        }
+
+        .card.warning .card-value {
+            color: #E97132;
+        }
+
+        .card.info .card-value {
+            color: #1E90FF;
+        }
+
+        /* Charts */
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            position: relative;
+            height: 400px;
+        }
+
+        .chart-container-wide {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        /* Matrix */
+        .matrix-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .matrix {
+            display: grid;
+            grid-template-columns: 150px 1fr 1fr;
+            grid-template-rows: 80px 1fr 1fr;
+            gap: 5px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .matrix-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border-radius: 6px;
+            position: relative;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            min-height: 120px;
+        }
+
+        .matrix-label {
+            background: #f0f0f0;
+            color: #333;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .matrix-quadrant {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .quadrant-name {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .quadrant-count {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .quadrant-green {
+            background: linear-gradient(135deg, #70AD47 0%, #5a8f3a 100%);
+        }
+
+        .quadrant-orange {
+            background: linear-gradient(135deg, #E97132 0%, #c85620 100%);
+        }
+
+        .quadrant-blue {
+            background: linear-gradient(135deg, #2E5090 0%, #1e3456 100%);
+        }
+
+        .quadrant-gray {
+            background: linear-gradient(135deg, #999 0%, #666 100%);
+        }
+
+        /* Table */
+        .table-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #2E5090;
+            color: white;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+        }
+
+        tbody tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f5f5f5;
+        }
+
+        .reason-cell {
+            color: #E97132;
+            font-weight: 500;
+        }
+
+        /* Consolidation Cards */
+        .consolidation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .consolidation-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-top: 5px solid;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .consolidation-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .consolidation-card.theme-1 {
+            border-top-color: #2E5090;
+        }
+
+        .consolidation-card.theme-2 {
+            border-top-color: #E97132;
+        }
+
+        .consolidation-card.theme-3 {
+            border-top-color: #70AD47;
+        }
+
+        .consolidation-card.theme-4 {
+            border-top-color: #1E90FF;
+        }
+
+        .consolidation-card.theme-5 {
+            border-top-color: #FF6B6B;
+        }
+
+        .consolidation-card.theme-6 {
+            border-top-color: #FFA500;
+        }
+
+        .consolidation-card.theme-7 {
+            border-top-color: #20B2AA;
+        }
+
+        .consolidation-card.theme-8 {
+            border-top-color: #9370DB;
+        }
+
+        .consolidation-card.theme-9 {
+            border-top-color: #DC143C;
+        }
+
+        .consolidation-card.theme-10 {
+            border-top-color: #2E8B57;
+        }
+
+        .consolidation-header {
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(46, 80, 144, 0.05) 0%, rgba(46, 80, 144, 0.02) 100%);
+        }
+
+        .consolidation-theme {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #2E5090;
+        }
+
+        .consolidation-count {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2E5090;
+        }
+
+        .consolidation-body {
+            padding: 20px;
+        }
+
+        .consolidation-issue {
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            border-left: 3px solid #E97132;
+        }
+
+        .consolidation-issue-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .consolidation-issue-text {
+            color: #666;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .consolidation-items {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .consolidation-items-label {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .consolidation-items-list {
+            font-size: 12px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* Scroll to top button */
+        #scrollTopBtn {
+            display: none;
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background-color: #2E5090;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 999;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: background-color 0.3s;
+        }
+
+        #scrollTopBtn:hover {
+            background-color: #1a3456;
+        }
+
+        /* Footer */
+        footer {
+            background: #2E5090;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+            font-size: 12px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            nav ul {
+                flex-wrap: wrap;
+                gap: 0;
+            }
+
+            nav ul li a {
+                padding: 8px 10px;
+                font-size: 11px;
+            }
+
+            .container {
+                margin-top: 120px;
+            }
+
+            .summary-cards {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .consolidation-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <h1>CWMS/CVRS 系統優化項目可視化報表</h1>
+        <ul>
+            <li><a href="javascript:void(0)" onclick="document.getElementById('section-1').scrollIntoView({behavior:'smooth'})">總覽</a></li>
+            <li><a href="javascript:void(0)" onclick="document.getElementById('section-2').scrollIntoView({behavior:'smooth'})">分類分布</a></li>
+            <li><a href="javascript:void(0)" onclick="document.getElementById('section-3').scrollIntoView({behavior:'smooth'})">四區評分</a></li>
+            <li><a href="javascript:void(0)" onclick="document.getElementById('section-4').scrollIntoView({behavior:'smooth'})">優先度與凝聚度</a></li>
+            <li><a href="javascript:void(0)" onclick="document.getElementById('section-5').scrollIntoView({behavior:'smooth'})">政策共識項目</a></li>
+            <li><a href="javascript:void(0)" onclick="document.getElementById('section-6').scrollIntoView({behavior:'smooth'})">痛點收合</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h2>慈濟CWMS/CVRS系統優化報告</h2>
+            <p>本報表展示了112個CWMS與CVRS系統優化項目的完整分析，涵蓋優先度評估、各區評分、凝聚度分析及核心痛點歸納。</p>
+        </div>
+
+        <!-- Section 1: Overview -->
+        <section id="section-1">
+            <div class="section-title">
+                <h2>📊 第一部分：總覽</h2>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="summary-cards">
+                <div class="card primary">
+                    <div class="card-label">CWMS 總項目</div>
+                    <div class="card-value">112</div>
+                </div>
+                <div class="card info">
+                    <div class="card-label">CVRS 項目</div>
+                    <div class="card-value">7</div>
+                </div>
+                <div class="card warning">
+                    <div class="card-label">高優先</div>
+                    <div class="card-value">8</div>
+                </div>
+                <div class="card success">
+                    <div class="card-label">中優先</div>
+                    <div class="card-value">25</div>
+                </div>
+                <div class="card info">
+                    <div class="card-label">無需求</div>
+                    <div class="card-value">7</div>
+                </div>
+            </div>
+
+            <!-- Priority and Consensus Charts -->
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <canvas id="priorityChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="consensusChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Category Distribution -->
+        <section id="section-2">
+            <div class="section-title">
+                <h2>📈 第二部分：分類分布</h2>
+            </div>
+
+            <div class="chart-container-wide" style="position: relative; height: 600px; margin-bottom: 30px;">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </section>
+
+        <!-- Section 3: Regional Scores -->
+        <section id="section-3">
+            <div class="section-title">
+                <h2>🌍 第三部分：四區評分分布</h2>
+            </div>
+
+            <div class="chart-container-wide" style="position: relative; height: 400px; margin-bottom: 30px;">
+                <canvas id="regionalChart"></canvas>
+            </div>
+
+            <div class="chart-container-wide" style="position: relative; height: 400px; margin-bottom: 30px;">
+                <canvas id="scoreHistogramChart"></canvas>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>項目編號</th>
+                            <th>分類</th>
+                            <th>項目名稱</th>
+                            <th>四區總分</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>#55</td>
+                            <td>帳務作業</td>
+                            <td>急難收據作業流程</td>
+                            <td><strong>19</strong></td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>#8</td>
+                            <td>個案主檔</td>
+                            <td>主檔作業(結案流程)</td>
+                            <td><strong>18</strong></td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>#6</td>
+                            <td>個案主檔</td>
+                            <td>提報</td>
+                            <td><strong>17</strong></td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>#11</td>
+                            <td>個案主檔</td>
+                            <td>主檔作業架構問題</td>
+                            <td><strong>17</strong></td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td>#47</td>
+                            <td>個管過程紀錄</td>
+                            <td>個管紀錄內容混亂</td>
+                            <td><strong>16</strong></td>
+                        </tr>
+                        <tr>
+                            <td>6</td>
+                            <td>#39</td>
+                            <td>帳務作業</td>
+                            <td>帳務列表查詢設計</td>
+                            <td><strong>15</strong></td>
+                        </tr>
+                        <tr>
+                            <td>7</td>
+                            <td>#91</td>
+                            <td>CVRS</td>
+                            <td>PBIS系統報表</td>
+                            <td><strong>15</strong></td>
+                        </tr>
+                        <tr>
+                            <td>8</td>
+                            <td>#1</td>
+                            <td>查詢作業</td>
+                            <td>標題凍結</td>
+                            <td><strong>14</strong></td>
+                        </tr>
+                        <tr>
+                            <td>9</td>
+                            <td>#94</td>
+                            <td>其他未分類</td>
+                            <td>系統頁面架構與流程優化</td>
+                            <td><strong>14</strong></td>
+                        </tr>
+                        <tr>
+                            <td>10</td>
+                            <td>#35</td>
+                            <td>帳務作業</td>
+                            <td>歷史帳務資料查詢</td>
+                            <td><strong>14</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 4: Priority vs Consensus Matrix -->
+        <section id="section-4">
+            <div class="section-title">
+                <h2>📊 第四部分：優先度與凝聚度矩陣</h2>
+            </div>
+
+            <div class="matrix-container">
+                <p style="text-align: center; margin-bottom: 30px; color: #666; font-size: 14px;">
+                    本矩陣顯示優化項目在優先度與凝聚度兩個維度上的分布情況
+                </p>
+
+                <div class="matrix">
+                    <!-- Top-left label -->
+                    <div class="matrix-cell matrix-label" style="grid-column: 2/3; grid-row: 1/2;">
+                        凝聚度
+                    </div>
+                    <div class="matrix-cell matrix-label" style="grid-column: 3/4; grid-row: 1/2;">
+                        高凝聚
+                    </div>
+                    <div class="matrix-cell matrix-label" style="grid-column: 1/2; grid-row: 2/3;">
+                        優先度
+                    </div>
+
+                    <!-- Row label: High Priority -->
+                    <div class="matrix-cell matrix-label">高優先</div>
+                    <!-- Green Quadrant: High Priority + High Consensus -->
+                    <div class="matrix-cell quadrant-green">
+                        <div class="quadrant-name">立即行動</div>
+                        <div class="quadrant-count">5</div>
+                    </div>
+                    <!-- Orange Quadrant: High Priority + Low Consensus -->
+                    <div class="matrix-cell quadrant-orange">
+                        <div class="quadrant-name">需尋求共識</div>
+                        <div class="quadrant-count">3</div>
+                    </div>
+
+                    <!-- Row label: Medium Priority -->
+                    <div class="matrix-cell matrix-label">中優先</div>
+                    <!-- Blue Quadrant: Medium Priority + High Consensus -->
+                    <div class="matrix-cell quadrant-blue">
+                        <div class="quadrant-name">列入計畫</div>
+                        <div class="quadrant-count">28</div>
+                    </div>
+                    <!-- Gray Quadrant: Medium Priority + Low Consensus -->
+                    <div class="matrix-cell quadrant-gray">
+                        <div class="quadrant-name">待持續評估</div>
+                        <div class="quadrant-count">10</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px; padding: 20px; background: #f9f9f9; border-radius: 6px;">
+                    <p style="font-size: 13px; color: #666; line-height: 1.8;">
+                        <strong style="color: #70AD47;">綠色 (立即行動)：</strong>優先度高且各區意見一致，應優先開發實施<br>
+                        <strong style="color: #E97132;">橙色 (需尋求共識)：</strong>優先度高但各區意見分散，須先取得各區共識後再推動<br>
+                        <strong style="color: #2E5090;">藍色 (列入計畫)：</strong>優先度中等且各區意見一致，可列入中期計畫<br>
+                        <strong style="color: #999;">灰色 (待持續評估)：</strong>優先度中等且意見分散，需持續評估與討論
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Policy Consensus Items -->
+        <section id="section-5">
+            <div class="section-title">
+                <h2>🔄 第五部分：需行政流程/政策共識的項目</h2>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>編號</th>
+                            <th>分類</th>
+                            <th>項目名稱</th>
+                            <th>需共識的原因</th>
+                            <th>四區總分</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>#55</strong></td>
+                            <td>帳務作業</td>
+                            <td>急難收據作業流程</td>
+                            <td class="reason-cell">涉及多區審批流程共識(已部分決議)</td>
+                            <td>19</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#8</strong></td>
+                            <td>個案主檔</td>
+                            <td>主檔作業(結案流程)</td>
+                            <td class="reason-cell">駁回結案作業邏輯需各區共識</td>
+                            <td>14</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#6</strong></td>
+                            <td>個案主檔</td>
+                            <td>提報</td>
+                            <td class="reason-cell">需基金會重新檢視提報管道來源政策</td>
+                            <td>14</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#11</strong></td>
+                            <td>個案主檔</td>
+                            <td>主檔作業架構問題</td>
+                            <td class="reason-cell">各區SOP不同需共識</td>
+                            <td>13</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#31</strong></td>
+                            <td>基本資料設定</td>
+                            <td>人員基本資料</td>
+                            <td class="reason-cell">需梳理離職同仁後續業務規則(政策面)</td>
+                            <td>11</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#101</strong></td>
+                            <td>其他未分類</td>
+                            <td>紙本資料管理</td>
+                            <td class="reason-cell">需討論紙本表單e化政策、保存年限、個資法</td>
+                            <td>11</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#19</strong></td>
+                            <td>基本資料</td>
+                            <td>需求改善情形</td>
+                            <td class="reason-cell">各區定義不同，評估欄位必要性</td>
+                            <td>10</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#48</strong></td>
+                            <td>個管過程紀錄</td>
+                            <td>個管作業管理</td>
+                            <td class="reason-cell">需政策面共識報表要在CWMS或PBIS</td>
+                            <td>10</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#95</strong></td>
+                            <td>其他未分類</td>
+                            <td>督導意見欄位</td>
+                            <td class="reason-cell">需共識督導意見統一填寫位置</td>
+                            <td>9</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#15</strong></td>
+                            <td>基本資料</td>
+                            <td>稱謂排序</td>
+                            <td class="reason-cell">需各區確認排序邏輯</td>
+                            <td>9</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#111</strong></td>
+                            <td>其他未分類</td>
+                            <td>個人資料保護</td>
+                            <td class="reason-cell">因應衛福部查核，個資同意書政策</td>
+                            <td>8</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#17</strong></td>
+                            <td>基本資料</td>
+                            <td>風險程度</td>
+                            <td class="reason-cell">各區定義不同，評估欄位必要性</td>
+                            <td>7</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#81</strong></td>
+                            <td>帳務作業</td>
+                            <td>個案資料列印</td>
+                            <td class="reason-cell">與系統無關，工具限制，需政策決定</td>
+                            <td>7</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#83</strong></td>
+                            <td>帳務作業</td>
+                            <td>印領清冊</td>
+                            <td class="reason-cell">牽涉全台通用報表格式，需各室確認共識</td>
+                            <td>6</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#112</strong></td>
+                            <td>其他未分類</td>
+                            <td>冬令印領清冊</td>
+                            <td class="reason-cell">各區多元需求不同，需協調</td>
+                            <td>6</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#73</strong></td>
+                            <td>帳務作業</td>
+                            <td>發放一覽表</td>
+                            <td class="reason-cell">待釐清目的性</td>
+                            <td>6</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#77</strong></td>
+                            <td>帳務作業</td>
+                            <td>衝突編輯管理</td>
+                            <td class="reason-cell">需確認編輯管理原則</td>
+                            <td>6</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#37</strong></td>
+                            <td>帳務作業</td>
+                            <td>長期關帳修改</td>
+                            <td class="reason-cell">各區不同意見，需考量核帳作業影響</td>
+                            <td>4</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#72</strong></td>
+                            <td>帳務作業</td>
+                            <td>匯款帳戶</td>
+                            <td class="reason-cell">付款給廠商定義與做法需討論確認</td>
+                            <td>5</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#26</strong></td>
+                            <td>個案主檔</td>
+                            <td>個案主檔轉換</td>
+                            <td class="reason-cell">全台共識開發，取消需全台討論</td>
+                            <td>4</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#10</strong></td>
+                            <td>基本資料</td>
+                            <td>家庭成員稱謂</td>
+                            <td class="reason-cell">待確認問題與做法共識</td>
+                            <td>4</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#27</strong></td>
+                            <td>個案主檔</td>
+                            <td>重新開案原案主</td>
+                            <td class="reason-cell">確認共識後移除</td>
+                            <td>3</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#50</strong></td>
+                            <td>訪視過程紀錄</td>
+                            <td>刪除訪視紀錄</td>
+                            <td class="reason-cell">規則待確認，需共識</td>
+                            <td>3</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#56</strong></td>
+                            <td>處遇</td>
+                            <td>刪除草稿處遇</td>
+                            <td class="reason-cell">規則待確認</td>
+                            <td>9</td>
+                        </tr>
+                        <tr>
+                            <td><strong>#13</strong></td>
+                            <td>個案主檔</td>
+                            <td>結案作業督導檢核</td>
+                            <td class="reason-cell">與督導實務落差，需重新討論SOP</td>
+                            <td>5</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 30px;">
+                <h3 style="color: #2E5090; margin-bottom: 15px;">說明</h3>
+                <p style="font-size: 13px; color: #666; line-height: 1.8; margin-bottom: 15px;">
+                    上表列出25個需要行政流程或政策共識的優化項目，這些項目主要涉及以下類型的共識需求：
+                </p>
+                <ul style="font-size: 13px; color: #666; line-height: 1.8; margin-left: 20px;">
+                    <li><strong>流程與SOP：</strong>各區實務作業流程不同，需統一SOP標準</li>
+                    <li><strong>政策決定：</strong>涉及基金會整體政策，非系統開發層面可決定</li>
+                    <li><strong>定義與標準化：</strong>欄位定義各區不同，需先達成共識</li>
+                    <li><strong>跨區協調：</strong>需多區或全台同仁共同討論與決議</li>
+                    <li><strong>法規遵循：</strong>涉及個資法、公文管理等政策面考量</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Section 6: Core Pain Point Consolidation -->
+        <section id="section-6">
+            <div class="section-title">
+                <h2>🎯 第六部分：核心痛點收合分析</h2>
+            </div>
+
+            <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px;">
+                <p style="font-size: 14px; color: #666; line-height: 1.8;">
+                    本分析將112個優化項目歸納為10個核心主題，每個主題涵蓋相關的子項目。這有助於優化工作的分類管理和優先級規劃。
+                </p>
+            </div>
+
+            <div class="consolidation-grid">
+                <!-- Theme 1 -->
+                <div class="consolidation-card theme-1">
+                    <div class="consolidation-header">
+                        <div class="consolidation-theme">🖥️ 介面與行動裝置體驗</div>
+                        <div class="consolidation-count">15 項</div>
+                    </div>
+                    <div class="consolidation-body">
+                        <div class="consolidation-issue">
+                            <div class="consolidation-issue-title">核心痛點</div>
+                            <div class="consolidation-issue-text">系統整體介面老舊、手機不友善、頁面跳轉頻繁</div>
+                        </div>
+                        <div class="consolidation-items">
+                            <div class="consolidation-items-label">涵蓋項目</div>
+                            <div class="consolidation-items-list">
+                                #88(CVRS手機), #94(系統頁面架構), #80(頁面跳離), #81(列印精簡), #12(版面設計), #97(介面視覺), #78(格式錯誤), #53(處遇版面), #62(案本基本資料版面), #44(訪視紀錄展開閱覽), #14(成員列表優化)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Theme 2 -->
+                <div class="consolidation-card theme-2">
+                    <div class="consolidation-header">
+                        <div class="consolidation-theme">🔍 查詢搜尋與資料檢索</div>
+                        <div class="consolidation-count">10 項</div>
+                    </div>
+                    <div class="consolidation-body">
+                        <div class="consolidation-issue">
+                            <div class="consolidation-issue-title">核心痛點</div>
+                            <div class="consolidation-issue-text">搜尋功能不足、查找資料耗時</div>
+                        </div>
+                        <div class="consolidation-items">
+                            <div class="consolidation-items-label">涵蓋項目</div>
+                            <div class="consolidation-items-list">
+                                #1(標題凍結), #2(模糊查詢), #3(志工姓名查詢), #4(ENTER搜尋), #5(結案查詢), #96(志工姓名欄位), #86(CVRS直接閱覽), #93(志工資料檢視)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Theme 3 -->
+                <div class="consolidation-card theme-3">
+                    <div class="consolidation-header">
+                        <div class="consolidation-theme">⚡ 作業流程簡化</div>
+                        <div class="consolidation-count">12 項</div>
+                    </div>
+                    <div class="consolidation-body">
+                        <div class="consolidation-issue">
+                            <div class="consolidation-issue-title">核心痛點</div>
+                            <div class="consolidation-issue-text">重複操作多、流程冗長、批次功能不足</div>
+                        </div>
+                        <div class="consolidation-items">
+                            <div class="consolidation-items-label">涵蓋項目</div>
+                            <div class="consolidation-items-list">
+                                #8(結案流程), #55(急難收據流程), #46(訪視新增), #43(訪視回應), #60(批次轉換), #66(主責轉換), #65(轉換提示), #64(幹事異動), #79(督導姓名帶入)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Theme 4 -->
+                <div class="consolidation-card theme-4">
+                    <div class="consolidation-header">
+                        <div class="consolidation-theme">💰 長期帳務與財務作業</div>
+                        <div class="consolidation-count">11 項</div>
+                    </div>
+                    <div class="consolidation-body">
+                        <div class="consolidation-issue">
+                            <div class="consolidation-issue-title">核心痛點</div>
+                            <div class="consolidation-issue-text">帳務頁面不符實務、核帳與對帳作業不便</div>
+                        </div>
+                        <div class="consolidation-items">
+                            <div class="consolidation-items-label">涵蓋項目</div>
+                            <div class="consolidation-items-list">
+                                #32(匯款銀行), #33(農曆改國曆), #35(歷史帳務), #36(帳務檢驗), #37(關帳修改), #38(核帳), #39(歷史留存), #40(帶入個管), #41(列印), #71(帳戶啟關), #75(急難對帳)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Theme 5 -->
+                <div class="consolidation-card theme-5">
+                    <div class="consolidation-header">
+                        <div class="consolidation-theme">📋 個管紀錄與報表</div>
+                        <div class="consolidation-count">10 項</div>
+                    </div>
+                    <div class="consolidation-body">
+                        <div class="consolidation-issue">
+                            <div class="consolidation-issue-title">核心痛點</div>
+                            <div class="consolidation-issue-text">紀錄分散混亂、缺乏自動化報表</div>
+                        </div>
+                        <div class="consolidation-items">
+                            <div class="consolidation-items-label">涵蓋項目</div>
+                            <div class="consolidation-items-list">
+                                #47(個管混亂), #48(個管作業管理), #49(個管摘要), #91(PBIS報表), #92(居安報表), #58(退件清冊), #57(處遇核銷報表), #112(印領清冊)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Theme 6 -->
+                <div class="consolidation-card theme-6">
+                    <div class="consolidation-header">
+                        <div class="consolidation-theme">📝 欄位定義與資料標準化</div>
+                        <div class="consolidation-count">12 項</div>
+                    </div>
+                    <div class="consolidation-body">
+                        <div class="consolidation-issue">
+                            <div class="consolidation-issue-title">核心痛點</div>
+                            <div class="consolidation-issue-text">各區定義不同、欄位設計不符需求</div>
+                        </div>
+                        <div class="consolidation-items">
+                            <div class="consolidation-items-label">涵蓋項目</div>
+                            <div class="consolidation-items-list">
+                                #17(風險程度), #19(需求改善情形), #18(特殊註記), #11(主檔架構), #15(稱謂排序), #10(稱謂調整), #22(家庭型態), #23(就學狀況), #24(身障類別), #16(收支明細), #25(收支說明), #95(督導意見)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Theme 7 -->
+                <div class="consolidation-card theme-7">
+                    <div class="consolidation-header">
+                        <div class="consolidation-theme">👨‍👩‍👧‍👦 個案主檔與家庭資訊</div>
+                        <div class="consolidation-count">8 項</div>
+                    </div>
+                    <div class="consolidation-body">
+                        <div class="consolidation-issue">
+                            <div class="consolidation-issue-title">核心痛點</div>
+                            <div class="consolidation-issue-text">複查費時、家庭資訊不完整</div>
+                        </div>
+                        <div class="consolidation-items">
+                            <div class="consolidation-items-label">涵蓋項目</div>
+                            <div class="consolidation-items-list">
+                                #20(複查作業), #9(案家概況), #21(家系圖), #27(原案主), #26(主檔轉換), #29(異動紀錄), #30(歷史紀錄), #110(CRM資訊)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Theme 8 -->
+                <div class="consolidation-card theme-8">
+                    <div class="consolidation-header">
+                        <div class="consolidation-theme">🔐 通知與權限管理</div>
+                        <div class="consolidation-count">8 項</div>
+                    </div>
+                    <div class="consolidation-body">
+                        <div class="consolidation-issue">
+                            <div class="consolidation-issue-title">核心痛點</div>
+                            <div class="consolidation-issue-text">通知信過多/對象不當、權限管理不完善</div>
+                        </div>
+                        <div class="consolidation-items">
+                            <div class="consolidation-items-label">涵蓋項目</div>
+                            <div class="consolidation-items-list">
+                                #31(離職通知), #59(待辦事項), #63(督導轉換), #77(衝突編輯), #82(審閱通知), #100(outlook通知), #107(提醒儲存), #111(個資保護)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Theme 9 -->
+                <div class="consolidation-card theme-9">
+                    <div class="consolidation-header">
+                        <div class="consolidation-theme">🔗 系統串接與整合</div>
+                        <div class="consolidation-count">5 項</div>
+                    </div>
+                    <div class="consolidation-body">
+                        <div class="consolidation-issue">
+                            <div class="consolidation-issue-title">核心痛點</div>
+                            <div class="consolidation-issue-text">多系統獨立運作、資料無法互通</div>
+                        </div>
+                        <div class="consolidation-items">
+                            <div class="consolidation-items-label">涵蓋項目</div>
+                            <div class="consolidation-items-list">
+                                #6(提報自動化), #7(提報方式), #102(財務串接), #105(系統串接), #104(Notes請款)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Theme 10 -->
+                <div class="consolidation-card theme-10">
+                    <div class="consolidation-header">
+                        <div class="consolidation-theme">👥 CVRS志工端專屬優化</div>
+                        <div class="consolidation-count">7 項</div>
+                    </div>
+                    <div class="consolidation-body">
+                        <div class="consolidation-issue">
+                            <div class="consolidation-issue-title">核心痛點</div>
+                            <div class="consolidation-issue-text">志工端功能缺乏、操作困難</div>
+                        </div>
+                        <div class="consolidation-items">
+                            <div class="consolidation-items-label">涵蓋項目</div>
+                            <div class="consolidation-items-list">
+                                #84(匯出PDF), #85(閱覽底色), #86(直接閱覽), #87(歷史帳務), #88(手機優化), #89(紀錄排序), #90(紀錄設定)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h3 style="color: #2E5090; margin-bottom: 15px;">收合分析說明</h3>
+                <p style="font-size: 13px; color: #666; line-height: 1.8; margin-bottom: 15px;">
+                    通過將112個優化項目分類為10個核心主題，系統開發團隊可以更有效地：
+                </p>
+                <ul style="font-size: 13px; color: #666; line-height: 1.8; margin-left: 20px;">
+                    <li><strong>優先級規劃：</strong>按主題塊狀優化，提升單個版本的交付價值</li>
+                    <li><strong>團隊分工：</strong>不同團隊可獨立負責各個主題的開發與測試</li>
+                    <li><strong>使用者溝通：</strong>以主題化的方式說明改善，更容易讓使用者理解整體優化方向</li>
+                    <li><strong>風險管理：</strong>清晰的主題邊界有助於識別與管理跨主題依賴</li>
+                    <li><strong>效益評估：</strong>完成各主題後可定量評估使用者滿意度與效率提升</li>
+                </ul>
+            </div>
+        </section>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button id="scrollTopBtn" onclick="scrollToTop()">↑</button>
+
+    <!-- Footer -->
+    <footer>
+        <p>CWMS/CVRS 系統優化項目可視化報表 | 慈濟基金會資訊系統優化專案 | 數據統計日期：2024年</p>
+    </footer>
+
+    <script>
+        // Priority Chart (Donut)
+        const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+        new Chart(priorityCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['高優先', '中優先', '未標記'],
+                datasets: [{
+                    data: [8, 25, 79],
+                    backgroundColor: ['#E97132', '#70AD47', '#CCCCCC'],
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: { family: "'Microsoft JhengHei', 'PingFang TC', sans-serif", size: 12 },
+                            padding: 15
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: '優先度分布',
+                        font: { family: "'Microsoft JhengHei', 'PingFang TC', sans-serif", size: 14, weight: 'bold' }
+                    }
+                }
+            }
+        });
+
+        // Consensus Chart (Donut)
+        const consensusCtx = document.getElementById('consensusChart').getContext('2d');
+        new Chart(consensusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['高凝聚', '高分散', '未標記'],
+                datasets: [{
+                    data: [33, 38, 41],
+                    backgroundColor: ['#70AD47', '#E97132', '#CCCCCC'],
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: { family: "'Microsoft JhengHei', 'PingFang TC', sans-serif", size: 12 },
+                            padding: 15
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: '凝聚度分布',
+                        font: { family: "'Microsoft JhengHei', 'PingFang TC', sans-serif", size: 14, weight: 'bold' }
+                    }
+                }
+            }
+        });
+
+        // Category Distribution Chart (Horizontal Bar)
+        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+        new Chart(categoryCtx, {
+            type: 'bar',
+            data: {
+                labels: ['02個案主檔', '19其他未分類', '04長期相關', '15系統設定', '16CVRS', '12基本資料設定', '01查詢作業', '14帳務作業', '09處遇', '05訪視過程紀錄', '07個管過程紀錄', '03基本資料', '13新芽獎學金', '08提報紀錄', '18居安系統', '11待辦事項', '10補助退件作業', '17BPIS'],
+                datasets: [{
+                    label: '項目數量',
+                    data: [20, 20, 11, 8, 7, 7, 7, 5, 5, 4, 4, 4, 4, 2, 1, 1, 1, 1],
+                    backgroundColor: '#2E5090',
+                    borderColor: '#1a3456',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: '各分類優化項目數量分布',
+                        font: { family: "'Microsoft JhengHei', 'PingFang TC', sans-serif", size: 14, weight: 'bold' }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 20,
+                        ticks: {
+                            font: { family: "'Microsoft JhengHei', 'PingFang TC', sans-serif" }
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            font: { family: "'Microsoft JhengHei', 'PingFang TC', sans-serif", size: 11 }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Regional Chart (Grouped Bar)
+        const regionalCtx = document.getElementById('regionalChart').getContext('2d');
+        new Chart(regionalCtx, {
+            type: 'bar',
+            data: {
+                labels: ['個案主檔', '帳務作業', '查詢作業', '訪視過程', '個管過程', '處遇', '提報紀錄'],
+                datasets: [
+                    {
+                        label: '北區',
+                        data: [4, 3.5, 3.8, 3.2, 3.5, 3.8, 3.5],
+                        backgroundColor: '#2E5090'
+                    },
+                    {
+                        label: '中區',
+                        data: [3.8, 3.8, 3.5, 3.5, 3.8, 3.6, 3.8],
+                        backgroundColor: '#E97132'
+                    },
+                    {
+                        label: '南區',
+                        data: [3.5, 3.6, 3.2, 3.0, 3.2, 3.4, 3.5],
+                        backgroundColor: '#70AD47'
+                    },
+                    {
+                        label: '花蓮',
+                        data: [3.2, 3.4, 3.0, 3.1, 3.0, 3.2, 3.3],
+                        backgroundColor: '#1E90FF'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '主要分類四區平均評分',
+                        font: { family: "'Microsoft JhengHei', 'PingFang TC', sans-serif", size: 14, weight: 'bold' }
+                    },
+                    legend: {
+                        labels: {
+                            font: { family: "'Microsoft JhengHei', 'PingFang TC', sans-serif" }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 5,
+                        ticks: {
+                            font: { family: "'Microsoft JhengHei', 'PingFang TC', sans-serif" }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: { family: "'Microsoft JhengHei', 'PingFang TC', sans-serif" }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Score Histogram
+        const histogramCtx = document.getElementById('scoreHistogramChart').getContext('2d');
+        new Chart(histogramCtx, {
+            type: 'bar',
+            data: {
+                labels: ['0-2分', '3-5分', '6-8分', '9-11分', '12-14分', '15-17分', '18-20分'],
+                datasets: [{
+                    label: '項目數',
+                    data: [15, 24, 28, 26, 12, 5, 2],
+                    backgroundColor: '#2E5090',
+                    borderColor: '#1a3456',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '優化項目評分分布（四區總分）',
+                        font: { family: "'Microsoft JhengHei', 'PingFang TC', sans-serif", size: 14, weight: 'bold' }
+                    },
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            font: { family: "'Microsoft JhengHei', 'PingFang TC', sans-serif" }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: { family: "'Microsoft JhengHei', 'PingFang TC', sans-serif" }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Scroll to Top Function
+        window.onscroll = function() {
+            const btn = document.getElementById("scrollTopBtn");
+            if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                btn.style.display = "block";
+            } else {
+                btn.style.display = "none";
+            }
+        };
+
+        function scrollToTop() {
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+
+        // Smooth scroll for navigation links
+        document.querySelectorAll('nav a').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({behavior: 'smooth'});
+                }
+            });
+        });
+    </script>
+</body>
+</html>
