@@ -174,7 +174,9 @@
   .summary-box h3 { color: #FCD34D; font-size: 18px; margin-bottom: 14px; }
   .summary-box table { color: #fff; }
   .summary-box th { background: rgba(255,255,255,.15); }
-  .summary-box td { border-bottom: 1px solid rgba(255,255,255,.15); }
+  .summary-box td { border-bottom: 1px solid rgba(255,255,255,.15); color: #fff; background: transparent !important; }
+  .summary-box tr:nth-child(even) td { background: rgba(255,255,255,.08) !important; }
+  .summary-box tr:hover td { background: rgba(255,255,255,.15) !important; }
 
   /* ─── Dependency Map ─── */
   .dep-map {
@@ -263,7 +265,7 @@
       <tr>
         <td><span class="tag tag-orange">方案三</span></td>
         <td>CWMS 志工名單 + SSO 統一認證</td>
-        <td>建立<strong>統一身份認證層</strong>，打通 CWMS ↔ AI 寶的帳號體系</td>
+        <td>建立<strong>統一身份認證層</strong>（簡訊優先 → 世代交替後轉 OAuth），打通 CWMS ↔ AI 寶帳號體系</td>
         <td>社工+志工</td>
       </tr>
     </table>
@@ -702,24 +704,29 @@
 
   <div class="card highlight-orange">
     <h3>🎯 核心目的</h3>
-    <p>目前 CWMS 的訪視志工名單管理分散，且 CWMS / CVRS / AI 寶各有獨立帳號體系。本方案建立<strong>統一身份認證（SSO）</strong>，從 CWMS 拉出志工名單作為唯一人員清冊來源，並支援<strong>手機號 OTP</strong> 與 <strong>Google OAuth</strong> 兩種登入方式，<strong>同時為方案一和方案二提供認證基礎設施。</strong></p>
+    <p>目前 CWMS 的訪視志工名單管理分散，且 CWMS / CVRS / AI 寶各有獨立帳號體系。本方案建立<strong>統一身份認證（SSO）</strong>，從 CWMS 拉出志工名單作為唯一人員清冊來源。考量志工年齡層偏高，<strong>初期以「手機簡訊 OTP」為主要登入方式</strong>（最易被接受），同時保留 Google OAuth 管道。採<strong>雙軌併行</strong>策略，待日後新世代志工接軌，再逐步以 Google OAuth 為主。</p>
   </div>
 
   <!-- SSO 認證流程 -->
   <div class="card">
-    <h3>🔐 雙軌認證流程設計</h3>
+    <h3>🔐 雙軌併行認證設計（簡訊優先 → 逐步 OAuth）</h3>
     <div class="arch-diagram">
       <div class="arch-row" style="gap: 60px;">
         <div style="text-align:center;">
-          <div class="arch-box sso">📱 手機號 OTP<br><small>適合：志工（無組織信箱）</small></div>
+          <div class="arch-box sso" style="border-width:3px; position:relative;">
+            📱 手機簡訊 OTP<br><small>志工主要登入方式</small>
+            <div style="position:absolute;top:-12px;right:-12px;background:var(--red);color:#fff;font-size:11px;padding:2px 10px;border-radius:10px;font-weight:700;">初期主力</div>
+          </div>
           <div style="font-size:12px; margin-top:8px; color:#4B5563;">
-            輸入手機號 → 發送簡訊驗證碼<br>→ 比對 CWMS 志工名單<br>→ 簽發 JWT Token
+            輸入手機號 → 收簡訊驗證碼<br>→ 比對 CWMS 志工名單<br>→ 簽發 JWT Token<br>
+            <strong style="color:var(--green);">✔ 年長志工最易接受</strong>
           </div>
         </div>
         <div style="text-align:center;">
-          <div class="arch-box auth">🔑 Google OAuth<br><small>適合：社工（有 @tzuchi.org.tw）</small></div>
+          <div class="arch-box auth">🔑 Google OAuth<br><small>社工 + 新世代志工</small></div>
           <div style="font-size:12px; margin-top:8px; color:#4B5563;">
-            Google 登入 → 驗證組織網域<br>→ 比對 CWMS 員工名冊<br>→ 簽發 JWT Token
+            Google 登入 → 驗證組織網域<br>→ 比對 CWMS 名冊<br>→ 簽發 JWT Token<br>
+            <strong style="color:var(--blue);">◎ 未來逐步擴大為主</strong>
           </div>
         </div>
       </div>
@@ -809,23 +816,70 @@
     </p>
   </div>
 
+  <!-- 世代轉換路線 -->
+  <div class="card highlight-orange">
+    <h3>🔄 雙軌併行 → 世代轉換路線圖</h3>
+    <p style="margin-bottom:14px; font-size:14px;">考量現有志工年齡層偏高，<strong>手機簡訊 OTP 為最低學習門檻的登入方式</strong>。系統設計為雙軌並存，隨新世代志工加入逐步提高 Google OAuth 佔比：</p>
+    <table>
+      <tr>
+        <th style="width:100px">階段</th>
+        <th style="width:100px">時間軸</th>
+        <th style="width:130px">簡訊 OTP 佔比</th>
+        <th style="width:130px">Google OAuth 佔比</th>
+        <th>策略說明</th>
+      </tr>
+      <tr>
+        <td><span class="tag tag-red">Phase 1</span></td>
+        <td>上線初期</td>
+        <td style="text-align:center;"><strong style="font-size:18px; color:var(--green);">90%</strong></td>
+        <td style="text-align:center;"><strong style="font-size:18px; color:var(--gray);">10%</strong></td>
+        <td>所有志工預設簡訊登入，僅有組織信箱的社工/幹部使用 OAuth</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-orange">Phase 2</span></td>
+        <td>1-2 年</td>
+        <td style="text-align:center;"><strong style="font-size:18px; color:var(--green);">60%</strong></td>
+        <td style="text-align:center;"><strong style="font-size:18px; color:var(--blue);">40%</strong></td>
+        <td>新加入志工引導使用 Google 帳號登入；既有志工維持簡訊不強迫切換</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-blue">Phase 3</span></td>
+        <td>3-5 年</td>
+        <td style="text-align:center;"><strong style="font-size:18px; color:var(--gray);">30%</strong></td>
+        <td style="text-align:center;"><strong style="font-size:18px; color:var(--blue);">70%</strong></td>
+        <td>Google OAuth 為主要推薦方式，簡訊保留為備用，節省簡訊費用</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-green">長期</span></td>
+        <td>5 年+</td>
+        <td style="text-align:center;"><strong style="font-size:16px; color:var(--gray);">備用</strong></td>
+        <td style="text-align:center;"><strong style="font-size:18px; color:var(--blue);">主力</strong></td>
+        <td>新世代全面 OAuth，簡訊 OTP 僅保留給無 Google 帳號的特殊情境</td>
+      </tr>
+    </table>
+    <div style="margin-top:16px; padding:14px; background:rgba(255,255,255,0.6); border-radius:8px; font-size:13px;">
+      <strong>💡 關鍵原則：</strong>不強迫現有志工改變習慣 → 雙軌永遠並存 → 透過自然世代交替逐步轉換 → 系統設計上兩種方式權重相同，僅推薦順序隨時間調整
+    </div>
+  </div>
+
   <div class="pros-cons">
     <div class="pros">
       <h4>✅ 優勢</h4>
       <ul>
         <li><strong>一次建設、全線受益</strong>：方案一和方案二都依賴此 SSO 層</li>
-        <li>志工免記帳密，手機號直接登入</li>
+        <li><strong>簡訊登入零學習成本</strong>：志工只需會收簡訊，無需記帳密</li>
+        <li>雙軌併行尊重現有志工習慣，不造成抗拒</li>
         <li>帳號生命週期自動化（入隊/離隊自動處理）</li>
         <li>統一稽核日誌，資安合規</li>
-        <li>未來新系統直接接入 SSO，免重複開發認證</li>
+        <li>世代交替自然轉換，長期降低簡訊費用</li>
       </ul>
     </div>
     <div class="cons">
       <h4>⚠️ 風險與挑戰</h4>
       <ul>
         <li>CWMS 志工名單資料品質（手機號缺漏/錯誤）需先清理</li>
-        <li>簡訊費用隨使用量增加</li>
-        <li>部分年長志工可能不熟悉 OTP 驗證流程</li>
+        <li>初期簡訊為主，費用隨使用量成長（可搭配免費額度控制）</li>
+        <li>需製作簡易圖示教學，協助年長志工理解「收簡訊→輸入驗證碼」流程</li>
         <li>SSO 為核心基礎設施，需高可用性設計</li>
         <li>需與 CWMS 資料庫建立 API 或 DB view 介接</li>
       </ul>
